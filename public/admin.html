@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <button class="lang" data-toggle-lang data-i18n="lang"></button>
+  <main id="app" class="admin-wrap">
+    <section id="v-login" class="view active center">
+      <h1 class="logo" style="font-size:3rem" data-i18n="admin"></h1>
+      <form id="login-form" class="card">
+        <input id="pw" type="password" data-i18n-ph="password" autocomplete="current-password" required>
+        <button class="btn primary" data-i18n="login"></button>
+        <p class="error" id="login-error"></p>
+      </form>
+    </section>
+
+    <section id="v-list" class="view">
+      <header class="bar"><h2 data-i18n="my_quizzes"></h2><button class="link" id="logout" data-i18n="logout"></button></header>
+      <p class="hint" id="pw-warn" hidden data-i18n="default_pw"></p>
+      <div class="row">
+        <button class="btn primary" id="new-quiz" data-i18n="new_quiz"></button>
+        <button class="btn" id="import-btn" data-i18n="import"></button>
+        <input type="file" id="import-file" accept="application/json" hidden>
+      </div>
+      <div class="qlist" id="qlist"></div>
+    </section>
+
+    <section id="v-edit" class="view">
+      <header class="bar"><button class="link" id="back" data-i18n="back"></button>
+        <div class="row"><button class="btn" id="save" data-i18n="save"></button><button class="btn primary" id="save-launch" data-i18n="save_launch"></button></div></header>
+      <div class="field" style="margin-bottom:8px"><label data-i18n="quiz_title"></label><input id="quiz-title" maxlength="80"></div>
+      <div class="tabs"><button class="btn tab on" data-tab="q" data-i18n="tab_q"></button><button class="btn tab" data-tab="theme" data-i18n="tab_theme"></button></div>
+      <p class="error" id="edit-error" style="color:#ffb3bf"></p>
+
+      <div id="tab-q">
+        <div id="items" class="qlist"></div>
+        <div class="row">
+          <button class="btn" id="add-quiz" data-i18n="add_quiz"></button>
+          <button class="btn" id="add-poll" data-i18n="add_poll"></button>
+          <button class="btn" id="add-slide" data-i18n="add_slide"></button>
+        </div>
+      </div>
+
+      <div id="tab-theme" hidden>
+        <div class="card wide">
+          <div class="field"><label data-i18n="presets"></label><div class="swatches" id="presets"></div></div>
+          <div class="grid2">
+            <div class="field"><label data-i18n="th_event"></label><input id="th-eventName" maxlength="80"></div>
+            <div class="field"><label data-i18n="th_sub"></label><input id="th-subtitle" maxlength="120"></div>
+          </div>
+          <div class="field"><label data-i18n="th_welcome"></label><input id="th-welcome" maxlength="200"></div>
+          <div class="grid2">
+            <div class="field"><label data-i18n="th_logo"></label><div class="row"><img class="thumb" id="th-logo-img" hidden alt=""><label class="btn small" for="up-logo" data-i18n="upload_img"></label><input id="up-logo" type="file" accept="image/*" hidden><button class="btn small" id="rm-logo" data-i18n="remove_img"></button></div></div>
+            <div class="field"><label data-i18n="th_bg"></label><div class="row"><img class="thumb" id="th-bg-img" hidden alt=""><label class="btn small" for="up-bg" data-i18n="upload_img"></label><input id="up-bg" type="file" accept="image/*" hidden><button class="btn small" id="rm-bg" data-i18n="remove_img"></button></div></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label data-i18n="th_bg1"></label><input type="color" id="th-bg1"></div>
+            <div class="field"><label data-i18n="th_bg2"></label><input type="color" id="th-bg2"></div>
+            <div class="field"><label data-i18n="th_accent"></label><input type="color" id="th-accent"></div>
+            <div class="field"><label data-i18n="th_text"></label><input type="color" id="th-text"></div>
+          </div>
+          <div class="field"><label data-i18n="th_choices"></label><div class="row"><input type="color" class="th-c" data-i="0" style="width:70px"><input type="color" class="th-c" data-i="1" style="width:70px"><input type="color" class="th-c" data-i="2" style="width:70px"><input type="color" class="th-c" data-i="3" style="width:70px"></div></div>
+          <div class="field"><label data-i18n="th_font"></label><select id="th-font"></select></div>
+        </div>
+        <h3 data-i18n="preview"></h3>
+        <div class="preview" id="preview">
+          <img data-theme-logo hidden alt="" style="max-height:60px">
+          <div class="ev" style="font-size:1.6rem;font-weight:800" data-theme-text="eventName"></div>
+          <div data-theme-text="subtitle"></div>
+          <div class="pq" data-i18n="preview_q"></div>
+          <div class="pc"><div class="c0">▲ A</div><div class="c1">◆ B</div><div class="c2">● C</div><div class="c3">■ D</div></div>
+        </div>
+      </div>
+    </section>
+    <div id="toast" hidden></div>
+  </main>
+  <script src="common.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

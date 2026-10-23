@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Host</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <button class="lang" data-toggle-lang data-i18n="lang"></button>
+  <main id="app">
+    <section id="v-load" class="view active center"><p class="hint">…</p></section>
+
+    <section id="v-lobby" class="view center">
+      <div class="brand"><img data-theme-logo hidden alt=""><div class="ev" data-theme-text="eventName" hidden></div><div class="sub" data-theme-text="subtitle" hidden></div></div>
+      <div class="lobby-grid">
+        <div class="center-col" style="display:flex;flex-direction:column;align-items:center;gap:8px">
+          <div class="hint" data-i18n="scan"></div>
+          <div class="qr" id="qr"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div class="hint"><span data-i18n="or_go"></span> <strong id="join-host"></strong> <span data-i18n="with_pin"></span></div>
+          <div class="pin" id="game-pin"></div>
+          <button class="btn primary huge" id="start-game" disabled data-i18n="start"></button>
+        </div>
+      </div>
+      <p><strong id="player-count">0</strong> <span data-i18n="players"></span></p>
+      <div id="lobby-players" class="chips"></div>
+      <p class="hint" id="kick-hint" hidden data-i18n="click_kick"></p>
+    </section>
+
+    <section id="v-slide" class="view">
+      <div class="slide">
+        <img class="qimg" id="sl-img" alt="" hidden>
+        <h2 id="sl-text"></h2>
+        <p id="sl-body"></p>
+      </div>
+      <div class="row center"><button class="btn primary huge" id="slide-next" data-i18n="next_slide"></button></div>
+    </section>
+
+    <section id="v-q" class="view">
+      <header class="bar"><span id="hq-count"></span><div class="timer" id="hq-timer"></div><span id="hq-answered"></span></header>
+      <img class="qimg" id="hq-img" alt="" hidden>
+      <h2 class="question" id="hq-text"></h2>
+      <div class="choices host" id="hq-choices"></div>
+      <div class="row center"><button class="btn" id="skip-q" data-i18n="skip"></button></div>
+    </section>
+
+    <section id="v-reveal" class="view">
+      <h2 class="question" id="hr-text"></h2>
+      <div class="bars" id="hr-bars"></div>
+      <div id="hr-board-wrap" style="display:flex;flex-direction:column;align-items:center">
+        <h3 data-i18n="leaderboard"></h3>
+        <ol class="board" id="hr-board"></ol>
+      </div>
+      <div class="row center"><button class="btn primary huge" id="next-q"></button></div>
+    </section>
+
+    <section id="v-final" class="view center">
+      <h1 data-i18n="podium"></h1>
+      <div class="podium" id="podium"></div>
+      <ol class="board" id="final-board"></ol>
+      <button class="btn primary" id="back-admin" data-i18n="new_game"></button>
+    </section>
+    <div id="toast" hidden></div>
+  </main>
+  <div class="host-tools"><button class="btn small" id="fs" data-i18n="fullscreen"></button><button class="btn small danger" id="end-game" data-i18n="end_game"></button></div>
+  <canvas id="confetti"></canvas>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="common.js"></script>
+  <script src="host.js"></script>
+</body>
+</html>
