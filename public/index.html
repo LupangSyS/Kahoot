@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quizzo – Live Quiz Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+
+    <!-- Landing / join -->
+    <section id="v-join" class="view active center">
+      <h1 class="logo">Quizzo!</h1>
+      <form id="join-form" class="card">
+        <input id="pin" inputmode="numeric" maxlength="6" placeholder="Game PIN" autocomplete="off" required>
+        <input id="nick" maxlength="20" placeholder="Nickname" autocomplete="off" required>
+        <button class="btn primary" type="submit">Enter</button>
+        <p class="error" id="join-error"></p>
+      </form>
+      <button class="link" id="to-host">Host a game →</button>
+    </section>
+
+    <!-- Host: quiz editor -->
+    <section id="v-editor" class="view">
+      <header class="bar"><h2>Create your quiz</h2><button class="link" id="back-join">← Back</button></header>
+      <div class="card wide">
+        <input id="quiz-title" placeholder="Quiz title" maxlength="80">
+        <div id="questions"></div>
+        <div class="row">
+          <button class="btn" id="add-q">+ Add question</button>
+          <button class="btn" id="load-sample">Load sample</button>
+          <button class="btn primary" id="create-game">Create game</button>
+        </div>
+        <p class="error" id="editor-error"></p>
+      </div>
+    </section>
+
+    <!-- Host: lobby -->
+    <section id="v-lobby" class="view center">
+      <p class="hint">Join at <strong id="join-url"></strong> with PIN</p>
+      <div class="pin" id="game-pin"></div>
+      <p><span id="player-count">0</span> players</p>
+      <div id="lobby-players" class="chips"></div>
+      <button class="btn primary" id="start-game" disabled>Start</button>
+    </section>
+
+    <!-- Host: question -->
+    <section id="v-hostq" class="view">
+      <header class="bar"><span id="hq-count"></span><div class="timer" id="hq-timer"></div><span id="hq-answered"></span></header>
+      <h2 class="question" id="hq-text"></h2>
+      <div class="choices host" id="hq-choices"></div>
+      <div class="row center"><button class="btn" id="skip-q">Skip</button></div>
+    </section>
+
+    <!-- Host: reveal -->
+    <section id="v-hostr" class="view">
+      <h2 class="question" id="hr-text"></h2>
+      <div class="bars" id="hr-bars"></div>
+      <h3>Leaderboard</h3>
+      <ol class="board" id="hr-board"></ol>
+      <div class="row center"><button class="btn primary" id="next-q">Next</button></div>
+    </section>
+
+    <!-- Host: final -->
+    <section id="v-hostend" class="view center">
+      <h1>Podium</h1>
+      <div class="podium" id="podium"></div>
+      <ol class="board" id="final-board"></ol>
+      <button class="btn primary" id="new-game">New game</button>
+    </section>
+
+    <!-- Player: waiting -->
+    <section id="v-wait" class="view center">
+      <h2 id="wait-title">You're in!</h2>
+      <p class="big" id="wait-name"></p>
+      <p class="hint" id="wait-msg">Waiting for the host to start…</p>
+    </section>
+
+    <!-- Player: answer -->
+    <section id="v-answer" class="view">
+      <header class="bar"><span id="pq-count"></span><div class="timer" id="pq-timer"></div><span id="pq-score"></span></header>
+      <div class="choices player" id="pq-choices"></div>
+    </section>
+
+    <!-- Player: result -->
+    <section id="v-result" class="view center" >
+      <h1 id="res-title"></h1>
+      <p class="big" id="res-gain"></p>
+      <p id="res-rank"></p>
+      <p class="hint" id="res-streak"></p>
+    </section>
+
+    <!-- Player: final -->
+    <section id="v-playerend" class="view center">
+      <h1>Game over</h1>
+      <p class="big" id="pe-rank"></p>
+      <p id="pe-score"></p>
+      <button class="btn primary" id="pe-again">Play again</button>
+    </section>
+
+    <div id="toast" hidden></div>
+  </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

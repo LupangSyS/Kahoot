@@ -1,0 +1,17 @@
+{
+  "name": "kahoot-clone",
+  "version": "1.0.0",
+  "description": "Live, real-time multiplayer quiz game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/smoke.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.7.5"
+  }
+}
