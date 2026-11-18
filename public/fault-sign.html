@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fault Dip Sign Generator</title>
+<style>
+  :root{--bg:#f4f5f7;--panel:#fff;--fg:#1d2330;--muted:#667;--accent:#2b6cb0;--line:#d8dce3}
+  @media (prefers-color-scheme:dark){:root{--bg:#15181e;--panel:#1f242c;--fg:#e6e9ee;--muted:#9aa3ad;--accent:#63a4ff;--line:#333a44}}
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.4 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+  header{padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+  h1{font-size:18px;margin:0}
+  .wrap{display:flex;gap:16px;padding:16px;flex-wrap:wrap}
+  aside{flex:0 0 290px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+  main{flex:1 1 400px;min-width:0;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px}
+  label{display:block;margin:10px 0 2px;font-weight:600}
+  label small{font-weight:400;color:var(--muted)}
+  input[type=range]{width:100%}
+  button{margin:6px 6px 0 0;padding:7px 12px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:6px;cursor:pointer}
+  button.sec{background:transparent;color:var(--accent)}
+  canvas{max-width:100%;height:auto;display:block;cursor:crosshair;background:#fff}
+  #status{margin-top:10px;color:var(--muted)}
+  .hint{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header><h1>Auto Fault Dip Sign Generator</h1>
+<div class="hint">Load a black &amp; white map (contours + fault polygons). Closed fault polygons are detected and a black box (normal-fault dip sign) is drawn at the centre of each.</div></header>
+<div class="wrap">
+<aside>
+  <label>Map image <small>(PNG/JPG)</small></label>
+  <input type="file" id="file" accept="image/*">
+
+  <label>Black threshold: <span id="vThr">128</span></label>
+  <input type="range" id="thr" min="20" max="240" value="128">
+
+  <label>Min polygon area (px): <span id="vMinA">300</span></label>
+  <input type="range" id="minA" min="10" max="5000" value="300">
+
+  <label>Max polygon area (% of image): <span id="vMaxA">3</span></label>
+  <input type="range" id="maxA" min="0.1" max="30" step="0.1" value="3">
+
+  <label>Min elongation <small>(length/width)</small>: <span id="vElong">3</span></label>
+  <input type="range" id="elong" min="1" max="20" step="0.5" value="3">
+  <label>Min length (px): <span id="vLen">80</span></label>
+  <input type="range" id="len" min="0" max="500" value="80">
+  <div class="hint">Fault polygons are long &amp; thin; spaces between contours are usually wide or touch the map edge.</div>
+
+  <label>Box size (px): <span id="vBox">8</span></label>
+  <input type="range" id="box" min="3" max="40" value="8">
+
+  <label><input type="checkbox" id="rotate" checked> Rotate box along fault strike</label>
+  <label><input type="checkbox" id="tick"> Add dip tick (towards downthrown side)</label>
+  <label><input type="checkbox" id="showDet" checked> Highlight detected polygons</label>
+
+  <div>
+    <button id="run">Detect</button>
+    <button id="save" class="sec">Download PNG</button>
+  </div>
+  <div class="hint" style="margin-top:8px">Click inside any region to add/remove a sign manually.</div>
+  <div id="status">No image loaded.</div>
+</aside>
+<main><canvas id="cv" width="600" height="400"></canvas></main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d', {willReadFrequently:true});
+let img = null, W = 0, H = 0, labels = null, regions = [], selected = new Set();
+
+['thr','minA','maxA','elong','box','len'].forEach(k => {
+  const map = {thr:'vThr',minA:'vMinA',maxA:'vMaxA',elong:'vElong',box:'vBox',len:'vLen'};
+  $(k).addEventListener('input', () => { $(map[k]).textContent = $(k).value; if (k==='box') render(); });
+});
+['rotate','tick','showDet'].forEach(k => $(k).addEventListener('change', render));
+['thr','minA','maxA','elong','len'].forEach(k => $(k).addEventListener('change', detect));
+$('run').onclick = detect;
+
+$('file').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const im = new Image();
+  im.onload = () => { img = im; W = cv.width = im.naturalWidth; H = cv.height = im.naturalHeight; detect(); };
+  im.src = URL.createObjectURL(f);
+};
+
+function detect() {
+  if (!img) return;
+  ctx.drawImage(img, 0, 0);
+  const d = ctx.getImageData(0, 0, W, H).data, thr = +$('thr').value;
+  const N = W * H, black = new Uint8Array(N);
+  for (let i = 0; i < N; i++) {
+    const g = 0.299*d[i*4] + 0.587*d[i*4+1] + 0.114*d[i*4+2];
+    black[i] = (d[i*4+3] > 0 && g < thr) ? 1 : 0;
+  }
+  // Label connected white regions (4-connectivity)
+  labels = new Int32Array(N).fill(-1);
+  regions = [];
+  const stack = new Int32Array(N);
+  for (let s = 0; s < N; s++) {
+    if (black[s] || labels[s] !== -1) continue;
+    const id = regions.length;
+    let sp = 0, area = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, edge = false;
+    stack[sp++] = s; labels[s] = id;
+    while (sp) {
+      const p = stack[--sp], x = p % W, y = (p - x) / W;
+      area++; sx += x; sy += y; sxx += x*x; syy += y*y; sxy += x*y;
+      if (x === 0 || y === 0 || x === W-1 || y === H-1) edge = true;
+      if (x > 0     && !black[p-1] && labels[p-1] === -1) { labels[p-1] = id; stack[sp++] = p-1; }
+      if (x < W-1   && !black[p+1] && labels[p+1] === -1) { labels[p+1] = id; stack[sp++] = p+1; }
+      if (y > 0     && !black[p-W] && labels[p-W] === -1) { labels[p-W] = id; stack[sp++] = p-W; }
+      if (y < H-1   && !black[p+W] && labels[p+W] === -1) { labels[p+W] = id; stack[sp++] = p+W; }
+    }
+    const mx = sx/area, my = sy/area;
+    const cxx = sxx/area - mx*mx, cyy = syy/area - my*my, cxy = sxy/area - mx*my;
+    const tr = cxx + cyy, det = cxx*cyy - cxy*cxy, disc = Math.sqrt(Math.max(0, tr*tr/4 - det));
+    const l1 = tr/2 + disc, l2 = Math.max(1e-6, tr/2 - disc);
+    regions.push({id, area, edge, mx, my, angle: 0.5*Math.atan2(2*cxy, cxx - cyy), elong: Math.sqrt(l1/l2), len: Math.sqrt(12*l1), cx: mx, cy: my});
+  }
+  // Find interior-most point of each region (handles curved polygons where the centroid falls outside)
+  const dist = distanceTransform(black, labels);
+  const best = new Float64Array(regions.length).fill(-1);
+  for (let p = 0; p < N; p++) {
+    const id = labels[p]; if (id < 0) continue;
+    const r = regions[id], x = p % W, y = (p - x) / W;
+    // prefer points deep inside and close to the centroid
+    const score = dist[p] * 4 - Math.hypot(x - r.mx, y - r.my) * 0.05;
+    if (score > best[id]) { best[id] = score; r.cx = x; r.cy = y; }
+  }
+  const minA = +$('minA').value, maxA = +$('maxA').value / 100 * N, el = +$('elong').value, minL = +$('len').value;
+  selected = new Set(regions.filter(r => !r.edge && r.area >= minA && r.area <= maxA && r.elong >= el && r.len >= minL).map(r => r.id));
+  render();
+}
+
+function distanceTransform(black, labels) {
+  // two-pass chamfer distance to nearest black pixel / other region
+  const N = W*H, D = new Float32Array(N), INF = 1e9;
+  for (let i = 0; i < N; i++) D[i] = black[i] ? 0 : INF;
+  const a = 1, b = 1.414;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y*W + x; if (!D[i]) continue; let v = D[i];
+    if (x > 0) v = Math.min(v, D[i-1] + a);
+    if (y > 0) { v = Math.min(v, D[i-W] + a); if (x > 0) v = Math.min(v, D[i-W-1] + b); if (x < W-1) v = Math.min(v, D[i-W+1] + b); }
+    D[i] = v;
+  }
+  for (let y = H-1; y >= 0; y--) for (let x = W-1; x >= 0; x--) {
+    const i = y*W + x; if (!D[i]) continue; let v = D[i];
+    if (x < W-1) v = Math.min(v, D[i+1] + a);
+    if (y < H-1) { v = Math.min(v, D[i+W] + a); if (x < W-1) v = Math.min(v, D[i+W+1] + b); if (x > 0) v = Math.min(v, D[i+W-1] + b); }
+    D[i] = v;
+  }
+  return D;
+}
+
+function render(withHighlight = true) {
+  if (!img) return;
+  ctx.drawImage(img, 0, 0);
+  if (withHighlight && $('showDet').checked && labels) {
+    const im = ctx.getImageData(0, 0, W, H), d = im.data;
+    for (let p = 0; p < W*H; p++) if (selected.has(labels[p])) { d[p*4] = 255*0.6 + d[p*4]*0.4; d[p*4+1] *= 0.75; d[p*4+2] *= 0.75; }
+    ctx.putImageData(im, 0, 0);
+  }
+  const s = +$('box').value;
+  ctx.fillStyle = '#000'; ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(1, s/5);
+  for (const id of selected) {
+    const r = regions[id];
+    ctx.save(); ctx.translate(r.cx + 0.5, r.cy + 0.5);
+    if ($('rotate').checked) ctx.rotate(r.angle);
+    ctx.fillRect(-s/2, -s/2, s, s);
+    if ($('tick').checked) { ctx.beginPath(); ctx.moveTo(0, s/2); ctx.lineTo(0, s*1.4); ctx.stroke(); }
+    ctx.restore();
+  }
+  $('status').textContent = `${regions.length} regions found, ${selected.size} fault polygon(s) signed.`;
+}
+
+cv.addEventListener('click', e => {
+  if (!labels) return;
+  const rc = cv.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rc.left) * W / rc.width), y = Math.floor((e.clientY - rc.top) * H / rc.height);
+  const id = labels[y*W + x]; if (id < 0) return;
+  selected.has(id) ? selected.delete(id) : selected.add(id);
+  render();
+});
+
+$('save').onclick = () => {
+  if (!img) return;
+  render(false);
+  const a = document.createElement('a'); a.download = 'map_with_fault_signs.png'; a.href = cv.toDataURL('image/png'); a.click();
+  render();
+};
+</script>
+</body>
+</html>
